@@ -25,7 +25,7 @@ RUN chown -R node:node /usr/src/app
 USER node
 
 # Expose the application's port (default to 8000)
-EXPOSE 443
+
 EXPOSE 8000
 
 # Start the application using Yarn
