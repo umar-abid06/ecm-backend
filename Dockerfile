@@ -29,4 +29,4 @@ USER node
 EXPOSE 8000
 
 # Start the application using Yarn
-CMD ["yarn", "run", "watch"]
+CMD ["yarn", "run", "start"]
