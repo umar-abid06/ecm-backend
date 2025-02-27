@@ -6,6 +6,7 @@ const orderRouter = require("./order/order-router");
 const shopRouter = require("./shop/shop-router");
 const couponRouter = require("./coupon/coupon-router");
 const conversationRouter = require("./conversation/conversation-router");
+const eventsRouter = require("./events/events-router");
 
 const api = express.Router();
 
@@ -16,5 +17,6 @@ api.use("/order", orderRouter);
 api.use("/shop", shopRouter);
 api.use("/coupon", couponRouter);
 api.use("/conservation", conversationRouter);
+api.use("/events", eventsRouter);
 
 module.exports = api;
