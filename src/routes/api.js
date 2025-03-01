@@ -9,6 +9,7 @@ const conversationRouter = require("./conversation/conversation-router");
 const eventsRouter = require("./events/events-router");
 const messagesRouter = require("./messages/messages-router");
 const withdrawRouter = require("./withdraw/withdraw-router");
+const profileRouter = require("./profile/profile-router");
 
 const api = express.Router();
 
@@ -22,5 +23,6 @@ api.use("/conservation", conversationRouter);
 api.use("/events", eventsRouter);
 api.use("/messages", messagesRouter);
 api.use("/withdraws", withdrawRouter);
+api.use("/profile", profileRouter);
 
 module.exports = api;

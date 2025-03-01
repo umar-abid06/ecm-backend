@@ -1,5 +1,5 @@
 // const cloudinary = require("cloudinary");
-const ShopModel = require("../model/shop/shop-mongo");
+const ShopModel = require("../shop/shop-mongo");
 const EventModel = require("./events-mongo");
 
 // Create an event
