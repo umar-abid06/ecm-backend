@@ -18,26 +18,29 @@ async function httpCreateShop(req, res) {
 
   try {
     const newShop = await createShop(shopData);
-    res.json(newShop);
+    return res.json(newShop);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 }
 async function httpActivateShop(req, res) {
-  const shopId = req.params.id;
+  const { activationToken } = req.params;
 
   try {
-    const activatedShop = await activateShop(shopId);
-    res.json(activatedShop);
+    const activatedShop = await activateShop(activationToken, res);
+    return res.json({
+      shop: activatedShop,
+      message: "Shop activated successfully!",
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 }
 async function httpLoginShop(req, res) {
   const loginData = req.body;
 
   try {
-    const seller = await loginShop(loginData);
+    const seller = await loginShop(loginData, res);
     res.json(seller);
   } catch (error) {
     res.status(500).json({ error: error.message });

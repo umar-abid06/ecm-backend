@@ -2,8 +2,13 @@ const ConversationModel = require("./conversation-mongo");
 
 // Create a new conversation
 const createConversation = async (conversationData) => {
+  console.log("Conversation Data --->", conversationData);
   try {
     const { groupTitle, userId, sellerId } = conversationData;
+
+    if (!userId || !sellerId) {
+      throw new Error("userId and sellerId are required");
+    }
 
     const isConversationExist = await ConversationModel.findOne({ groupTitle });
 

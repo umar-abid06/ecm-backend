@@ -12,27 +12,34 @@ const {
   deleteUser,
 } = require("../../model/profile/profile-model");
 const ErrorHandler = require("../../services/ErrorHandler");
+const sendToken = require("../../services/jwtToken");
 
-async function httpCreateUser(req, res, next) {
+async function httpCreateUser(req, res) {
   try {
+    // Call the createUser function without passing `res`
     const user = await createUser(req.body);
-    res.status(201).json({
+
+    // Send the response with the user data
+    return res.status(201).json({
       success: true,
       user,
     });
   } catch (error) {
-    return next(new ErrorHandler(error.message, 400));
+    // Handle error response
+    return res.status(500).json({ error: error.message });
   }
 }
-async function httpActivateUser(req, res, next) {
+
+async function httpActivateUser(req, res) {
+  const { activationToken } = req.params;
+
   try {
-    const user = await activateUser(req.params.token);
-    res.status(200).json({
-      success: true,
-      user,
-    });
+    const user = await activateUser(activationToken);
+    if (user) {
+      sendToken(user, 200, res);
+    }
   } catch (error) {
-    return next(new ErrorHandler(error.message, 400));
+    return res.status(400).json({ error: error.message });
   }
 }
 async function httpLoginUser(req, res, next) {

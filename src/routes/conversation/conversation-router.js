@@ -8,7 +8,7 @@ const {
 
 const conversationRouter = express.Router();
 
-conversationRouter.post("/create-conversation", httpCreateConversation); // POST /conversation/create-conversation  - create a new conversation    // create a new conversation POST "/create-conversation",  // create a new conversation POST "/create-conversation",
+conversationRouter.post("/create-conversation", httpCreateConversation); // POST /conversation/create-conversation  - create a new conversation
 conversationRouter.get(
   "/get-seller-conversations/:sellerId",
   httpGetSellerConversations

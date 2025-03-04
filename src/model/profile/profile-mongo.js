@@ -43,8 +43,8 @@ const profileSchema = new mongoose.Schema(
       default: "user",
     },
     avatar: {
-      public_id: { type: String, required: true },
-      url: { type: String, required: true },
+      public_id: { type: String, default: "" },
+      url: { type: String, default: "" },
     },
     resetPasswordToken: String,
     resetPasswordTime: Date,

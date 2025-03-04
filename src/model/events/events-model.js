@@ -36,7 +36,7 @@ const createEvent = async (eventData) => {
 // Get all events
 const getAllEvents = async () => {
   try {
-    return await Event.find();
+    return await EventModel.find();
   } catch (error) {
     throw new Error("Error fetching events: " + error.message);
   }

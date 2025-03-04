@@ -15,10 +15,10 @@ const {
 } = require("./shop-controller");
 const shopRouter = express.Router();
 
-shopRouter.post("/create-shop", httpCreateShop); // POST /shop/create-shop  - create a new shop for a user  // create a new shop for a user POST "/create-shop",    // create a new shop for a user POST "/create-shop",
-shopRouter.put("/activate-shop/:id", httpActivateShop); // PUT /shop/activate-shop/:id - activate a shop    // activate a shop PUT "/activate-shop/:id",
-shopRouter.post("/login-shop", httpLoginShop); // POST /shop/login-shop - login a shop    // login a shop POST "/login-shop",
-shopRouter.get("/get-seller-info/:id", httpGetSellerInfo); // GET /shop/get-seller-info/:id - get seller info    // get seller info GET "/get-seller-info/:id",
+shopRouter.post("/create-shop", httpCreateShop); // POST /shop/create-shop  - create a new shop for a user
+shopRouter.get("/activate-shop/:activationToken", httpActivateShop); // GET /shop/activate-shop/:id - activate a shop
+shopRouter.post("/login-shop", httpLoginShop); // POST /shop/login-shop - login a shop
+shopRouter.get("/get-seller-info/:id", httpGetSellerInfo); // GET /shop/get-seller-info/:id
 shopRouter.put("/logout-shop/:id", httpLogoutShop); // PUT /shop/logout-shop/:id - logout a shop    // logout a shop PUT "/logout-shop/:id",
 shopRouter.get("/get-shop/:id", httpGetShopById); // GET /shop/get-shop/:id - get shop by ID    // get shop by ID GET "/get-shop/:id",
 shopRouter.put("/update-shop-avatar/:id", httpUpdateShopAvatar); // PUT /shop/update-shop-avatar/:id - update shop avatar    // update shop avatar PUT "/update-shop-avatar/:id",

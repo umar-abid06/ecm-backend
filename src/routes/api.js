@@ -16,7 +16,7 @@ const api = express.Router();
 
 api.use("/auth/register", registerRouter);
 api.use("/auth/login", loginRouter);
-api.use("/product", productRouter);
+api.use("/products", productRouter);
 api.use("/order", orderRouter);
 api.use("/shop", shopRouter);
 api.use("/coupon", couponRouter);

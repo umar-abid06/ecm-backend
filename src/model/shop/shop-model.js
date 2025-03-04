@@ -1,5 +1,7 @@
-const sendShopToken = require("../../services/shopToken-service");
 const ShopModel = require("./shop-mongo");
+const jwt = require("jsonwebtoken");
+const sendEmail = require("../../services/email-service");
+const sendShopToken = require("../../services/shopToken-service");
 
 const createShop = async (shopData) => {
   try {
@@ -8,22 +10,26 @@ const createShop = async (shopData) => {
     const existingShop = await ShopModel.findOne({ email });
     if (existingShop) throw new Error("User already exists");
 
-    const myCloud = await cloudinary.v2.uploader.upload(avatar, {
-      folder: "avatars",
-    });
+    // const myCloud = await cloudinary.v2.uploader.upload(avatar, {
+    //   folder: "avatars",
+    // });
 
-    shopData.avatar = {
-      public_id: myCloud.public_id,
-      url: myCloud.secure_url,
-    };
+    // shopData.avatar = {
+    //   public_id: myCloud.public_id,
+    //   url: myCloud.secure_url,
+    // };
 
+    // Create activation token
     const activationToken = createActivationToken(shopData);
-    const activationUrl = `https://eshop-tutorial-pyri.vercel.app/seller/activation/${activationToken}`;
 
-    await sendMail({
+    // Define activation URL (to be refactored with your deployed URL in production)
+    const activationUrl = `http://localhost:${process.env.PORT}/api/v1/shop/activate-shop/${activationToken}`;
+
+    // Send activation email to the shop owner
+    await sendEmail({
       email,
       subject: "Activate your Shop",
-      message: `Hello ${shopData.name}, please click on the link to activate your shop: ${activationUrl}`,
+      html: `<p>Hello ${shopData.name}, please click on the link to activate your shop</p><p>Press <a href="${activationUrl}">HERE</a> to proceed.</p>`,
     });
 
     return {
@@ -35,27 +41,41 @@ const createShop = async (shopData) => {
   }
 };
 
-const createActivationToken = (seller) => {
-  return jwt.sign(seller, process.env.ACTIVATION_SECRET, { expiresIn: "5m" });
+const createActivationToken = (shopData) => {
+  if (typeof shopData !== "object" || shopData === null) {
+    throw new Error("Invalid shop data");
+  }
+
+  return jwt.sign(shopData, process.env.ACTIVATION_SECRET, {
+    expiresIn: 600, // 600 seconds = 10 minutes
+  });
 };
-const activateShop = async (activationToken) => {
+
+// Function to activate the shop after clicking the activation link
+const activateShop = async (activationToken, res) => {
   try {
-    const newSeller = jwt.verify(
+    // Verify the activation token
+    const newShopData = jwt.verify(
       activationToken,
       process.env.ACTIVATION_SECRET
     );
-    if (!newSeller) throw new Error("Invalid token");
+    if (!newShopData) throw new Error("Invalid token");
 
-    const existingSeller = await ShopModel.findOne({ email: newSeller.email });
-    if (existingSeller) throw new Error("User already exists");
+    // Check if the shop already exists
+    const existingShop = await ShopModel.findOne({ email: newShopData.email });
+    if (existingShop) throw new Error("Shop already exists");
 
-    const seller = await ShopModel.create(newSeller);
-    return sendShopToken(seller);
+    // Create the shop in the database
+    const shop = await ShopModel.create(newShopData);
+
+    // Send shop token (Assuming this sends back a token for the newly created shop)
+    return sendShopToken(shop, 200, res);
   } catch (error) {
     throw new Error("Error activating shop: " + error.message);
   }
 };
-const loginShop = async (email, password) => {
+const loginShop = async (credentials, res) => {
+  const { email, password } = credentials;
   try {
     if (!email || !password) throw new Error("Please provide all fields!");
 
@@ -65,7 +85,7 @@ const loginShop = async (email, password) => {
     const isPasswordValid = await seller.comparePassword(password);
     if (!isPasswordValid) throw new Error("Incorrect credentials");
 
-    return sendShopToken(seller);
+    return sendShopToken(seller, 200, res);
   } catch (error) {
     throw new Error("Error logging in: " + error.message);
   }
@@ -112,17 +132,17 @@ const updateShopAvatar = async (sellerId, avatar) => {
     let seller = await ShopModel.findById(sellerId);
     if (!seller) throw new Error("Seller not found");
 
-    await cloudinary.v2.uploader.destroy(seller.avatar.public_id);
+    // await cloudinary.v2.uploader.destroy(seller.avatar.public_id);
 
-    const myCloud = await cloudinary.v2.uploader.upload(avatar, {
-      folder: "avatars",
-      width: 150,
-    });
+    // const myCloud = await cloudinary.v2.uploader.upload(avatar, {
+    //   folder: "avatars",
+    //   width: 150,
+    // });
 
-    seller.avatar = {
-      public_id: myCloud.public_id,
-      url: myCloud.secure_url,
-    };
+    // seller.avatar = {
+    //   public_id: myCloud.public_id,
+    //   url: myCloud.secure_url,
+    // };
 
     await seller.save();
     return seller;

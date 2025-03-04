@@ -15,8 +15,8 @@ const {
 
 const profileRouter = express.Router();
 
-profileRouter.post("/", httpCreateUser); // POST /profile/  - create a new user   // create a new user POST "/",  // create a new user POST "/",
-profileRouter.post("/activate", httpActivateUser); // POST /profile/activate  - activate a user    // activate a user POST "/activate",  // activate a user POST "/activate",
+profileRouter.post("/create-profile", httpCreateUser); // POST /profile/create-profile  - create a new user   // create a new user
+profileRouter.get("/activate-account/:activationToken", httpActivateUser); // GET /profile/activate/:activationToken  - activate a user
 profileRouter.post("/login", httpLoginUser); // POST /profile/login  - login a user    // login a user POST "/login",  // login a user POST "/login",   // login a user POST "/login",
 profileRouter.get("/", httpGetUserInfo); // GET /profile/  - get user info    // get user info GET "/",  // get user info GET "/",   // get user info GET "/",
 profileRouter.post("/logout", httpLogoutUser); // POST /profile/logout  - logout a user    // logout a user POST "/logout"

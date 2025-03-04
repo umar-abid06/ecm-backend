@@ -8,15 +8,16 @@ const sendToken = require("../../services/jwtToken");
 // const { isAuthenticated, isAdmin } = require("../middleware/auth");
 
 // create user
-const createUser = async (req, res, next) => {
+const createUser = async (credentials) => {
   try {
-    const { name, email, password, avatar } = req.body;
+    const { name, email, password, avatar } = credentials;
 
     const userEmail = await ProfileModel.findOne({ email });
     if (userEmail) {
-      return next(new ErrorHandler("User already exists", 400));
+      throw new Error("User already exists");
     }
 
+    // Optionally handle avatar upload
     // const myCloud = await cloudinary.v2.uploader.upload(avatar, {
     //   folder: "avatars",
     // });
@@ -25,56 +26,92 @@ const createUser = async (req, res, next) => {
       name,
       email,
       password,
-      //   avatar: {
-      //     public_id: myCloud.public_id,
-      //     url: myCloud.secure_url,
-      //   },
+      // avatar: {
+      //   public_id: myCloud.public_id,
+      //   url: myCloud.secure_url,
+      // },
     };
 
+    // Generate the activation token and URL
     const activationToken = createActivationToken(user);
-    const activationUrl = `${process.env.BASE_URL}/activation/${activationToken}`;
+    const activationUrl = `http://localhost:${process.env.PORT}/api/v1/profile/activate-account/${activationToken}`;
 
-    await sendMail({
+    // Send the email for activation (no `res` needed here)
+    await sendEmail({
       email: user.email,
       subject: "Activate your account",
-      message: `Hello ${user.name}, please click on the link to activate your account: ${activationUrl}`,
+      html: `<p>
+      Hello ${user.name}, please click on the link to activate your account: $<a href="${activationUrl}">HERE</a></p>`,
     });
 
-    res.status(201).json({
-      success: true,
+    // Return the necessary data (not the `res` object)
+    return {
+      user,
       message: `Please check your email: ${user.email} to activate your account!`,
-    });
+    };
   } catch (error) {
-    return next(new ErrorHandler(error.message, 500));
+    // Throw the error so it can be handled by the HTTP function
+    throw new Error("Error creating account: " + error.message);
   }
 };
-
 // create activation token
 const createActivationToken = (user) => {
-  return jwt.sign(user, process.env.ACTIVATION_SECRET, { expiresIn: "5m" });
+  if (typeof user !== "object" || user === null) {
+    throw new Error("Invalid user data");
+  }
+
+  return jwt.sign(user, process.env.ACTIVATION_SECRET, {
+    expiresIn: 600, // 600 seconds = 10 minutes
+  });
 };
 
 // activate user
-const activateUser = async (req, res, next) => {
-  try {
-    const { activation_token } = req.body;
+// const activateUser = async (req, res, next) => {
+//   try {
+//     const { activation_token } = req.body;
 
-    const newUser = jwt.verify(activation_token, process.env.ACTIVATION_SECRET);
+//     const newUser = jwt.verify(activation_token, process.env.ACTIVATION_SECRET);
+//     if (!newUser) {
+//       return next(new ErrorHandler("Invalid token", 400));
+//     }
+
+//     const { name, email, password, avatar } = newUser;
+//     let user = await ProfileModel.findOne({ email });
+
+//     if (user) {
+//       return next(new ErrorHandler("User already exists", 400));
+//     }
+
+//     user = await ProfileModel.create({ name, email, avatar, password });
+//     sendToken(user, 201, res);
+//   } catch (error) {
+//     return next(new ErrorHandler(error.message, 500));
+//   }
+// };
+const activateUser = async (activationToken) => {
+  try {
+    // Verify the activation token
+    const newUser = jwt.verify(activationToken, process.env.ACTIVATION_SECRET);
     if (!newUser) {
-      return next(new ErrorHandler("Invalid token", 400));
+      throw new Error("Invalid token");
     }
 
     const { name, email, password, avatar } = newUser;
-    let user = await ProfileModel.findOne({ email });
 
+    // Check if the user already exists
+    let user = await ProfileModel.findOne({ email });
     if (user) {
-      return next(new ErrorHandler("User already exists", 400));
+      throw new Error("User already exists");
     }
 
-    user = await ProfileModel.create({ name, email, avatar, password });
-    sendToken(user, 201, res);
+    // Create a new user
+    user = await ProfileModel.create(newUser);
+
+    // Return the created user (no `res` object here)
+    return user;
   } catch (error) {
-    return next(new ErrorHandler(error.message, 500));
+    // Throw error so it can be handled by the HTTP function (httpActivateUser)
+    throw new Error(error.message);
   }
 };
 

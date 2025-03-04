@@ -5,16 +5,25 @@ const {
   updateLastMessage,
 } = require("../../model/conversation/conversation-model");
 
-async function httpCreateConversation(req, res) {
-  const { userId, sellerId, groupTitle } = req.body;
-
+const httpCreateConversation = async (req, res) => {
   try {
-    const conversation = await createConversation(userId, sellerId, groupTitle);
-    res.json(conversation);
+    const { userId, sellerId, groupTitle } = req.body;
+
+    if (!userId || !sellerId || !groupTitle) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const conversation = await createConversation({
+      userId,
+      sellerId,
+      groupTitle,
+    });
+
+    res.status(201).json(conversation);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-}
+};
 async function httpGetSellerConversations(req, res) {
   const { sellerId } = req.params;
 
