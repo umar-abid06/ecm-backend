@@ -6,9 +6,9 @@ const {
 const express = require("express");
 const messagesRouter = express.Router();
 
-messagesRouter.post("/create-message", httpCreateMessage); // create a new message POST "/create-message",
+messagesRouter.post("/create-message", httpCreateMessage); // POST "/create-message" create a new message
 messagesRouter.get(
   "/get-messages/:conversationId",
   httpGetMessagesByConversation
-); // get all messages by conversation ID GET "/get-messages/:conversationId",
+); // GET "/get-messages/:conversationId" get all messages by conversation ID
 module.exports = messagesRouter;

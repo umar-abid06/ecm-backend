@@ -35,7 +35,8 @@ const createMessage = async (messageData) => {
 // Get all messages for a conversation
 const getMessagesByConversation = async (conversationId) => {
   try {
-    return await MessagesModel.find({ conversationId });
+    const message = await MessagesModel.find({ _id: conversationId });
+    return message;
   } catch (error) {
     throw new Error("Error fetching messages: " + error.message);
   }

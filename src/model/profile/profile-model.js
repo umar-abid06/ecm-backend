@@ -1,312 +1,151 @@
 const jwt = require("jsonwebtoken");
 const ProfileModel = require("./profile-mongo");
-// const cloudinary = require("cloudinary");
-const ErrorHandler = require("../../services/ErrorHandler");
-// const catchAsyncErrors = require("../middleware/catchAsyncErrors");
 const sendEmail = require("../../services/email-service");
-const sendToken = require("../../services/jwtToken");
-// const { isAuthenticated, isAdmin } = require("../middleware/auth");
 
-// create user
 const createUser = async (credentials) => {
-  try {
-    const { name, email, password, avatar } = credentials;
+  const { name, email, password } = credentials;
 
-    const userEmail = await ProfileModel.findOne({ email });
-    if (userEmail) {
-      throw new Error("User already exists");
-    }
+  const existingUser = await ProfileModel.findOne({ email });
+  if (existingUser) throw new Error("User already exists");
 
-    // Optionally handle avatar upload
-    // const myCloud = await cloudinary.v2.uploader.upload(avatar, {
-    //   folder: "avatars",
-    // });
+  const user = { name, email, password };
+  const activationToken = createActivationToken(user);
+  const activationUrl = `http://localhost:${process.env.PORT}/api/v1/profile/activate-account/${activationToken}`;
 
-    const user = {
-      name,
-      email,
-      password,
-      // avatar: {
-      //   public_id: myCloud.public_id,
-      //   url: myCloud.secure_url,
-      // },
-    };
-
-    // Generate the activation token and URL
-    const activationToken = createActivationToken(user);
-    const activationUrl = `http://localhost:${process.env.PORT}/api/v1/profile/activate-account/${activationToken}`;
-
-    // Send the email for activation (no `res` needed here)
-    await sendEmail({
-      email: user.email,
-      subject: "Activate your account",
-      html: `<p>
-      Hello ${user.name}, please click on the link to activate your account: $<a href="${activationUrl}">HERE</a></p>`,
-    });
-
-    // Return the necessary data (not the `res` object)
-    return {
-      user,
-      message: `Please check your email: ${user.email} to activate your account!`,
-    };
-  } catch (error) {
-    // Throw the error so it can be handled by the HTTP function
-    throw new Error("Error creating account: " + error.message);
-  }
-};
-// create activation token
-const createActivationToken = (user) => {
-  if (typeof user !== "object" || user === null) {
-    throw new Error("Invalid user data");
-  }
-
-  return jwt.sign(user, process.env.ACTIVATION_SECRET, {
-    expiresIn: 600, // 600 seconds = 10 minutes
+  await sendEmail({
+    email: user.email,
+    subject: "Activate your account",
+    html: `<p>Hello ${user.name}, please click <b><a href="${activationUrl}">HERE</a></b> to activate your account.</p>`,
   });
+
+  return {
+    user,
+    message: `Check your email: ${user.email} to activate your account!`,
+  };
 };
 
-// activate user
-// const activateUser = async (req, res, next) => {
-//   try {
-//     const { activation_token } = req.body;
+const createActivationToken = (user) => {
+  if (!user || typeof user !== "object") throw new Error("Invalid user data");
 
-//     const newUser = jwt.verify(activation_token, process.env.ACTIVATION_SECRET);
-//     if (!newUser) {
-//       return next(new ErrorHandler("Invalid token", 400));
-//     }
+  return jwt.sign(user, process.env.ACTIVATION_SECRET, { expiresIn: 600 });
+};
 
-//     const { name, email, password, avatar } = newUser;
-//     let user = await ProfileModel.findOne({ email });
-
-//     if (user) {
-//       return next(new ErrorHandler("User already exists", 400));
-//     }
-
-//     user = await ProfileModel.create({ name, email, avatar, password });
-//     sendToken(user, 201, res);
-//   } catch (error) {
-//     return next(new ErrorHandler(error.message, 500));
-//   }
-// };
 const activateUser = async (activationToken) => {
+  const newUser = jwt.verify(activationToken, process.env.ACTIVATION_SECRET);
+  if (!newUser) throw new Error("Invalid token");
+
+  const { email } = newUser;
+  const existingUser = await ProfileModel.findOne({ email });
+  if (existingUser) throw new Error("User already exists");
+
+  return await ProfileModel.create(newUser);
+};
+
+const loginUser = async ({ email, password }) => {
+  if (!email || !password) throw new Error("Missing credentials");
+
+  const user = await ProfileModel.findOne({ email }).select("+password");
+  if (!user || !(await user.comparePassword(password)))
+    throw new Error("Invalid email or password");
+
+  return user;
+};
+// load user
+const getUserInfo = async (id) => {
   try {
-    // Verify the activation token
-    const newUser = jwt.verify(activationToken, process.env.ACTIVATION_SECRET);
-    if (!newUser) {
-      throw new Error("Invalid token");
+    const user = await ProfileModel.findById(id);
+    if (!user) {
+      throw new Error("User does not exist");
     }
 
-    const { name, email, password, avatar } = newUser;
-
-    // Check if the user already exists
-    let user = await ProfileModel.findOne({ email });
-    if (user) {
-      throw new Error("User already exists");
-    }
-
-    // Create a new user
-    user = await ProfileModel.create(newUser);
-
-    // Return the created user (no `res` object here)
-    return user;
+    res.status(200).json({
+      success: true,
+      user,
+    });
   } catch (error) {
-    // Throw error so it can be handled by the HTTP function (httpActivateUser)
+    throw new Error("Server error");
+  }
+};
+
+const getUserInfoById = async (id) => {
+  const user = await ProfileModel.findById(id);
+  if (!user) throw new Error("User not found");
+
+  return user;
+};
+
+const updateUserInfo = async (id, updates) => {
+  const user = await ProfileModel.findById(id);
+  if (!user) throw new Error("User not found");
+
+  Object.assign(user, updates);
+  await user.save();
+
+  return user;
+};
+
+const updatePassword = async (
+  userId,
+  oldPassword,
+  newPassword,
+  confirmPassword
+) => {
+  try {
+    const user = await ProfileModel.findById(userId).select("+password");
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const isPasswordMatched = await user.comparePassword(oldPassword);
+    if (!isPasswordMatched) {
+      throw new Error("Old password is incorrect!");
+    }
+
+    if (newPassword !== confirmPassword) {
+      throw new Error("Passwords don't match!");
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    return { message: "Password updated successfully!" };
+  } catch (error) {
     throw new Error(error.message);
   }
 };
 
-// login user
-const loginUser = async (req, res, next) => {
+async function updateAvatar(userId, avatarUrl) {
   try {
-    const { email, password } = req.body;
+    const user = await ProfileModel.findByIdAndUpdate(
+      userId,
+      { avatar: avatarUrl },
+      { new: true, runValidators: true }
+    );
 
-    if (!email || !password) {
-      return next(new ErrorHandler("Please provide all fields!", 400));
-    }
-
-    const user = await ProfileModel.findOne({ email }).select("+password");
     if (!user) {
-      return next(new ErrorHandler("User doesn't exist!", 400));
+      throw new Error("User not found");
     }
 
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
-      return next(new ErrorHandler("Incorrect credentials", 400));
-    }
-
-    sendToken(user, 201, res);
+    return user;
   } catch (error) {
-    return next(new ErrorHandler(error.message, 500));
+    throw new Error(error.message);
   }
+}
+
+const deleteUser = async (id) => {
+  const user = await ProfileModel.findById(id);
+  if (!user) throw new Error("User not found");
+
+  await ProfileModel.findByIdAndDelete(id);
+  return { message: "User deleted successfully", deletedUser: user };
 };
 
-// load user
-const getUserInfo = async (req, res, next) => {
+const getAllUsers = async () => {
   try {
-    const user = await ProfileModel.findById(req.user.id);
-    if (!user) {
-      return next(new ErrorHandler("User doesn't exist", 400));
-    }
-
-    res.status(200).json({
-      success: true,
-      user,
-    });
+    const users = await ProfileModel.find();
+    return users;
   } catch (error) {
-    return next(new ErrorHandler(error.message, 500));
-  }
-};
-
-// log out user
-const logoutUser = async (req, res, next) => {
-  try {
-    res.cookie("token", null, {
-      expires: new Date(Date.now()),
-      httpOnly: true,
-      sameSite: "none",
-      secure: true,
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "Log out successful!",
-    });
-  } catch (error) {
-    return next(new ErrorHandler(error.message, 500));
-  }
-};
-
-// update user info
-const updateUserInfo = async (req, res, next) => {
-  try {
-    const { email, password, phoneNumber, name } = req.body;
-
-    const user = await ProfileModel.findOne({ email }).select("+password");
-    if (!user) {
-      return next(new ErrorHandler("User not found", 400));
-    }
-
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
-      return next(new ErrorHandler("Incorrect credentials", 400));
-    }
-
-    user.name = name;
-    user.email = email;
-    user.phoneNumber = phoneNumber;
-
-    await user.save();
-
-    res.status(201).json({
-      success: true,
-      user,
-    });
-  } catch (error) {
-    return next(new ErrorHandler(error.message, 500));
-  }
-};
-
-// update user avatar
-const updateAvatar = async (req, res, next) => {
-  try {
-    const existsUser = await ProfileModel.findById(req.user.id);
-    // if (req.body.avatar) {
-    //   const imageId = existsUser.avatar.public_id;
-    //   await cloudinary.v2.uploader.destroy(imageId);
-
-    //   const myCloud = await cloudinary.v2.uploader.upload(req.body.avatar, {
-    //     folder: "avatars",
-    //     width: 150,
-    //   });
-
-    //   existsUser.avatar = {
-    //     public_id: myCloud.public_id,
-    //     url: myCloud.secure_url,
-    //   };
-    // }
-
-    await existsUser.save();
-
-    res.status(200).json({
-      success: true,
-      user: existsUser,
-    });
-  } catch (error) {
-    return next(new ErrorHandler(error.message, 500));
-  }
-};
-
-// update user password
-const updatePassword = async (req, res, next) => {
-  try {
-    const user = await ProfileModel.findById(req.user.id).select("+password");
-
-    const isPasswordMatched = await user.comparePassword(req.body.oldPassword);
-    if (!isPasswordMatched) {
-      return next(new ErrorHandler("Old password is incorrect!", 400));
-    }
-
-    if (req.body.newPassword !== req.body.confirmPassword) {
-      return next(new ErrorHandler("Passwords don't match!", 400));
-    }
-
-    user.password = req.body.newPassword;
-    await user.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Password updated successfully!",
-    });
-  } catch (error) {
-    return next(new ErrorHandler(error.message, 500));
-  }
-};
-
-// find user information by ID
-const getUserInfoById = async (req, res, next) => {
-  try {
-    const user = await ProfileModel.findById(req.params.id);
-    res.status(200).json({
-      success: true,
-      user,
-    });
-  } catch (error) {
-    return next(new ErrorHandler(error.message, 500));
-  }
-};
-
-// all users --- for admin
-const getAllUsers = async (req, res, next) => {
-  try {
-    const users = await ProfileModel.find().sort({ createdAt: -1 });
-    res.status(200).json({
-      success: true,
-      users,
-    });
-  } catch (error) {
-    return next(new ErrorHandler(error.message, 500));
-  }
-};
-
-// delete user --- admin
-const deleteUser = async (req, res, next) => {
-  try {
-    const user = await ProfileModel.findById(req.params.id);
-    if (!user) {
-      return next(new ErrorHandler("User not found", 400));
-    }
-
-    // const imageId = user.avatar.public_id;
-    // await cloudinary.v2.uploader.destroy(imageId);
-
-    await ProfileModel.findByIdAndDelete(req.params.id);
-
-    res.status(200).json({
-      success: true,
-      message: "User deleted successfully!",
-    });
-  } catch (error) {
-    return next(new ErrorHandler(error.message, 500));
+    throw new Error("Error getting all users: " + error.message);
   }
 };
 
@@ -315,11 +154,10 @@ module.exports = {
   activateUser,
   loginUser,
   getUserInfo,
-  logoutUser,
+  getUserInfoById,
   updateUserInfo,
   updateAvatar,
   updatePassword,
-  getUserInfoById,
-  getAllUsers,
   deleteUser,
+  getAllUsers,
 };
