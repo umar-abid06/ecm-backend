@@ -18,6 +18,7 @@ const createUser = async (credentials) => {
     html: `<p>Hello ${user.name}, please click <b><a href="${activationUrl}">HERE</a></b> to activate your account.</p>`,
   });
 
+  user.password = undefined; // Remove password from response
   return {
     user,
     message: `Check your email: ${user.email} to activate your account!`,
@@ -40,7 +41,11 @@ const activateUser = async (activationToken) => {
 
   return await ProfileModel.create(newUser);
 };
+async function getExistedUser(email) {
+  const existedUser = await ProfileModel.findOne({ email });
 
+  return existedUser;
+}
 const loginUser = async ({ email, password }) => {
   if (!email || !password) throw new Error("Missing credentials");
 
@@ -152,6 +157,7 @@ const getAllUsers = async () => {
 module.exports = {
   createUser,
   activateUser,
+  getExistedUser,
   loginUser,
   getUserInfo,
   getUserInfoById,

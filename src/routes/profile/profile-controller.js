@@ -1,6 +1,11 @@
 const {
+  isEmailValid,
+  isPasswordValid,
+} = require("../../config/validation-config");
+const {
   createUser,
   activateUser,
+  getExistedUser,
   loginUser,
   getUserInfo,
   updateUserInfo,
@@ -15,12 +20,68 @@ const sendToken = require("../../services/jwtToken");
 // Create User
 async function httpCreateUser(req, res) {
   try {
-    const result = await createUser(req.body);
-    return res.status(201).json({ success: true, ...result });
+    const { name, email, password, confirmPassword } = req.body;
+    console.log(req.body);
+    // Check for missing credentials
+    if (!name || !email || !password || !confirmPassword) {
+      return res.status(400).json({
+        status: "ERROR",
+        message: "Missing Credentials",
+      });
+    }
+
+    // Check if user already exists
+    const existedUser = await getExistedUser(email);
+    if (existedUser) {
+      return res.status(401).json({
+        status: "ERROR",
+        message: "Account Already Exists With This Email! Login Instead!",
+        data: "Login Instead!",
+      });
+    }
+
+    // Validate email and password
+    if (!isEmailValid(email) || !isPasswordValid(password)) {
+      return res.status(400).json({
+        status: "ERROR",
+        message: "Invalid Email Or Password",
+        data: [
+          "Password should be at least 6 characters",
+          "Must include a capital letter",
+          "Must include a special character like *, @, #, _",
+        ],
+      });
+    }
+
+    // Ensure passwords match
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        status: "ERROR",
+        message: "Passwords do not match",
+        data: "Ensure password and confirm password are the same",
+      });
+    }
+
+    // Create new user
+    const newUser = await createUser(req.body);
+    return res.status(200).json({
+      status: "SUCCESS",
+      message: "User registered successfully! Please verify your email.",
+      data: newUser,
+    });
   } catch (error) {
-    return res.status(409).json({ error: error.message }); // 409 Conflict for existing user
+    return res.status(409).json({ status: "ERROR", error: error.message }); // 409 Conflict for existing user
   }
 }
+
+// async function httpCreateUser(req, res) {
+//   try {
+//     const result = await createUser(req.body);
+//     return res.status(201).json({ success: true, ...result });
+//   } catch (error) {
+//     return res.status(409).json({ error: error.message }); // 409 Conflict for existing user
+//   }
+// }
 
 // Activate User
 async function httpActivateUser(req, res) {
@@ -28,17 +89,38 @@ async function httpActivateUser(req, res) {
     const user = await activateUser(req.params.activationToken);
     sendToken(user, 200, res);
   } catch (error) {
-    return res.status(400).json({ error: error.message }); // 400 Bad Request for invalid token
+    return res.status(400).json({ status: "ERROR", message: error.message }); // 400 Bad Request for invalid token
   }
 }
 
 // Login User
 async function httpLoginUser(req, res) {
   try {
-    const user = await loginUser(req.body);
-    res.status(200).json({ success: true, user });
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        status: "ERROR",
+        message: "Missing Credentials",
+        data: "Kindly Enter Correct & Complete Credentials!",
+      });
+    }
+    const user = await getExistedUser(email);
+
+    if (!user) {
+      return res.status(400).json({
+        status: "ERROR",
+        message:
+          "This User does not Exist! Sign Up Instead Or Check Your Email!",
+        data: "Sign Up Instead!",
+      });
+    }
+
+    const loggedInUser = await loginUser(req.body);
+    loggedInUser.password = undefined; // Remove password from response
+    return res.status(200).json({ success: true, user: loggedInUser });
   } catch (error) {
-    return res.status(401).json({ error: error.message }); // 401 Unauthorized for invalid login
+    return res.status(401).json({ status: "ERROR", message: error.message }); // 401 Unauthorized for invalid login
   }
 }
 
