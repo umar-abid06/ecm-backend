@@ -11,6 +11,7 @@ const messagesRouter = require("./messages/messages-router");
 const withdrawRouter = require("./withdraw/withdraw-router");
 const profileRouter = require("./profile/profile-router");
 const paymentRouter = require("./payment/payment-router");
+const categoryRouter = require("./category/category-router");
 
 const api = express.Router();
 
@@ -26,5 +27,6 @@ api.use("/messages", messagesRouter);
 api.use("/withdraws", withdrawRouter);
 api.use("/profile", profileRouter);
 api.use("/payment", paymentRouter);
+api.use("/categories", categoryRouter);
 
 module.exports = api;
