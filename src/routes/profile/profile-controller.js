@@ -15,13 +15,11 @@ const {
   getAllUsers,
   deleteUser,
 } = require("../../model/profile/profile-model");
-const sendToken = require("../../services/jwtToken");
 
 // Create User
 async function httpCreateUser(req, res) {
   try {
     const { name, email, password, confirmPassword } = req.body;
-    console.log(req.body);
     // Check for missing credentials
     if (!name || !email || !password || !confirmPassword) {
       return res.status(400).json({
@@ -87,9 +85,20 @@ async function httpCreateUser(req, res) {
 async function httpActivateUser(req, res) {
   try {
     const user = await activateUser(req.params.activationToken);
-    sendToken(user, 200, res);
+
+    // Generate JWT token
+    const token = user.getJwtToken();
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/auth/activation?status=verified&token=${token}`
+    );
   } catch (error) {
-    return res.status(400).json({ status: "ERROR", message: error.message }); // 400 Bad Request for invalid token
+    return res.redirect(
+      `${
+        process.env.FRONTEND_URL
+      }/auth/activation?status=error&message=${encodeURIComponent(
+        error.message
+      )}`
+    );
   }
 }
 

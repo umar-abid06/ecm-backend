@@ -10,7 +10,8 @@ const createUser = async (credentials) => {
 
   const user = { name, email, password };
   const activationToken = createActivationToken(user);
-  const activationUrl = `http://localhost:${process.env.PORT}/api/v1/profile/activate-account/${activationToken}`;
+  // const activationUrl = `http://localhost:${process.env.PORT}/api/v1/profile/activate-account/${activationToken}`;
+  const activationUrl = `${process.env.BACKEND_URL}/api/v1/profile/activate-account/${activationToken}`;
 
   await sendEmail({
     email: user.email,
@@ -32,14 +33,18 @@ const createActivationToken = (user) => {
 };
 
 const activateUser = async (activationToken) => {
-  const newUser = jwt.verify(activationToken, process.env.ACTIVATION_SECRET);
-  if (!newUser) throw new Error("Invalid token");
+  try {
+    const newUser = jwt.verify(activationToken, process.env.ACTIVATION_SECRET);
+    if (!newUser) throw new Error("Invalid token");
 
-  const { email } = newUser;
-  const existingUser = await ProfileModel.findOne({ email });
-  if (existingUser) throw new Error("User already exists");
+    const { email } = newUser;
+    const existingUser = await ProfileModel.findOne({ email });
+    if (existingUser) throw new Error("User already exists");
 
-  return await ProfileModel.create(newUser);
+    return await ProfileModel.create(newUser);
+  } catch (error) {
+    throw new Error("Invalid or expired activation token");
+  }
 };
 async function getExistedUser(email) {
   const existedUser = await ProfileModel.findOne({ email });
