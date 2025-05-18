@@ -101,7 +101,8 @@ async function httpVerifyUser(req, res) {
 
         if (deletedEmailData.acknowledged === true) {
           // res.sendFile(path.join(__dirname, "../../../view/verification.html"));
-          res.redirect("http://127.0.0.1:5173/activation");
+          // res.redirect("http://127.0.0.1:5173/activation");
+          res.redirect(process.env.FRONTEND_URL_PROD + "activation");
         }
       }
     } else {
