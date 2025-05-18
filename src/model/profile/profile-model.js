@@ -11,7 +11,7 @@ const createUser = async (credentials) => {
   const user = { name, email, password };
   const activationToken = createActivationToken(user);
   // const activationUrl = `http://localhost:${process.env.PORT}/api/v1/profile/activate-account/${activationToken}`;
-  const activationUrl = `${process.env.BACKEND_URL}/api/v1/profile/activate-account/${activationToken}`;
+  const activationUrl = `${process.env.BACKEND_URL_PROD}/api/v1/profile/activate-account/${activationToken}`;
 
   await sendEmail({
     email: user.email,
