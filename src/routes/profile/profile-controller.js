@@ -89,15 +89,13 @@ async function httpActivateUser(req, res) {
     // Generate JWT token
     const token = user.getJwtToken();
     return res.redirect(
-      `${process.env.FRONTEND_URL_PROD}/auth/activation?status=verified&token=${token}`
+      `${process.env.FRONTEND_URL_PROD}/activation?status=verified&token=${token}`
     );
   } catch (error) {
     return res.redirect(
       `${
         process.env.FRONTEND_URL_PROD
-      }/auth/activation?status=error&message=${encodeURIComponent(
-        error.message
-      )}`
+      }/activation?status=error&message=${encodeURIComponent(error.message)}`
     );
   }
 }
