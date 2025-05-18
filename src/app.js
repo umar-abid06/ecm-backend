@@ -7,8 +7,28 @@ const cookieParser = require("cookie-parser");
 const api = require("./routes/api");
 const app = express();
 
+// app.use(
+//   cors({ origin: "https://ecm-frontend.onrender.com", acredentials: true })
+// );
+// CORS configuration
+const allowedOrigins = [
+  "http://localhost:5173", // Dev frontend
+  "https://ecm-frontend.onrender.com", // Production frontend
+];
+
 app.use(
-  cors({ origin: "https://ecm-frontend.onrender.com", acredentials: true })
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true, // Allow cookies if you're using them
+  })
 );
 
 app.use(cookieParser());
