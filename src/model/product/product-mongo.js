@@ -27,25 +27,11 @@ const ProductSchema = new mongoose.Schema(
       },
     ],
     shop: {
-      name: {
-        type: String,
-        required: true,
-      },
-      shop_avatar: {
-        public_id: {
-          type: String,
-          required: true,
-        },
-        url: {
-          type: String,
-          required: true,
-        },
-      },
-      ratings: {
-        type: Number,
-        required: true,
-      },
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ShopSchema",
+      required: true,
     },
+
     price: {
       type: Number,
       required: true,

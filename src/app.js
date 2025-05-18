@@ -7,7 +7,9 @@ const cookieParser = require("cookie-parser");
 const api = require("./routes/api");
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({ origin: "https://ecm-frontend.onrender.com", acredentials: true })
+);
 
 app.use(cookieParser());
 app.use(morgan("combined"));
